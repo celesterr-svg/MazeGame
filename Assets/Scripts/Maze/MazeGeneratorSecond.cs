@@ -163,7 +163,7 @@ public class MazeGeneratorSecond : MonoBehaviour
         Vector3 origin = new Vector3(-(width * cellSize) * 0.5f, 0f, -(height * cellSize) * 0.5f);
 
         float wallThickness = 0.2f; // grosor visual si usás un cubo
-        float wallHeight = 30f;      // alto visual si usás un cubo
+        float wallHeight = 80f;      // alto visual si usás un cubo
 
         for (int x = 0; x < width; x++)
         {
