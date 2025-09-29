@@ -11,6 +11,7 @@ public class ChaseZone : MonoBehaviour
         if (other.gameObject.tag == "Player") 
         {
             chase.chase = true;
+            chase.travel = false;
         }
 
     }
@@ -20,6 +21,7 @@ public class ChaseZone : MonoBehaviour
         if(other.gameObject.tag == "Player")
         {
             chase.chase = false;
+            chase.travel = true;
         }
     }
 }

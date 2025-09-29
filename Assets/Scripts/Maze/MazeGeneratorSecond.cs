@@ -8,12 +8,19 @@ public class MazeGeneratorSecond : MonoBehaviour
     public int width = 15;
     public int height = 10;
     public float cellSize = 2f;
+    public float baseY = 0f;
+    public bool sitOnGround = true;
 
     [Header("Prefabs / Visual")]
     public GameObject wallPrefab;
+    public GameObject exitPrefab;
     public bool addOuterBorder = true;
     public Transform mazeParent; // opcional: dónde anidar las paredes
     public bool generateOnStart = true;
+
+    [Header("Objetos del laberinto")]
+    public GameObject pila;
+    [Range(0f, 1f)]public float pilaSpawnChance;
 
     [Header("Algoritmo (Growing Tree)")]
     [Range(0f, 1f)]
@@ -23,7 +30,7 @@ public class MazeGeneratorSecond : MonoBehaviour
 
     [Tooltip("Usar una semilla fija (0 = desactivado)")]
     public int fixedSeed = 0;
-
+    private List<Transform> spawnedWalls = new List<Transform>();
     private Cell[,] grid;
     private System.Random rng;
     private readonly Vector2Int[] dirs = new Vector2Int[]
@@ -43,27 +50,29 @@ public class MazeGeneratorSecond : MonoBehaviour
         public bool[] walls = { true, true, true, true };
     }
 
-    void Start()
-    {
-        if (generateOnStart) Generate();
-    }
-
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
             Generate();
         }
     }
+    void Start()
+    {
+        if (generateOnStart) 
+        {
+            Generate();
+        }
+    }
 
     public void Generate()
-    {
+    {    
         // limpiar laberinto previo
         ClearMaze();
 
         // RNG
         rng = (fixedSeed != 0) ? new System.Random(fixedSeed) : new System.Random();
-
+               
         // crear grilla
         grid = new Cell[width, height];
         for (int x = 0; x < width; x++)
@@ -73,8 +82,10 @@ public class MazeGeneratorSecond : MonoBehaviour
         // algoritmo Growing Tree
         RunGrowingTree();
 
-        // construir paredes
+        spawnedWalls.Clear();
         BuildMazeGeometry();
+
+        PlaceSpecialWall();
     }
 
     private void RunGrowingTree()
@@ -164,12 +175,19 @@ public class MazeGeneratorSecond : MonoBehaviour
 
         float wallThickness = 0.2f; // grosor visual si usás un cubo
         float wallHeight = 80f;      // alto visual si usás un cubo
+        float yCenter = baseY + (sitOnGround ? wallHeight * 0.5f : 0f);
 
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                Vector3 cellCenter = origin + new Vector3((x + 0.5f) * cellSize, 0f, (y + 0.5f) * cellSize);
+                Vector3 cellCenter = origin + new Vector3((x + 0.5f) * cellSize, yCenter, (y + 0.5f) * cellSize);
+
+                if(pila != null && rng.NextDouble() < pilaSpawnChance)
+                {
+                    Vector3 pos = cellCenter + Vector3.up * 0.5f;
+                    Instantiate(pila, pos, Quaternion.identity, parent);
+                }
 
                 // Norte
                 if (grid[x, y].walls[(int)Dir.N])
@@ -205,26 +223,34 @@ public class MazeGeneratorSecond : MonoBehaviour
             Vector3 max = origin + new Vector3(width * cellSize, 0f, height * cellSize);
 
             // Norte
-            SpawnWall(new Vector3((min.x + max.x) * 0.5f, 0f, max.z),
+            SpawnWall(new Vector3((min.x + max.x) * 0.5f, yCenter, max.z),
                 new Vector3(width * cellSize, wallHeight, wallThickness), Quaternion.identity, parent);
             // Sur
-            SpawnWall(new Vector3((min.x + max.x) * 0.5f, 0f, min.z),
+            SpawnWall(new Vector3((min.x + max.x) * 0.5f, yCenter, min.z),
                 new Vector3(width * cellSize, wallHeight, wallThickness), Quaternion.identity, parent);
             // Este
-            SpawnWall(new Vector3(max.x, 0f, (min.z + max.z) * 0.5f),
+            SpawnWall(new Vector3(max.x, yCenter, (min.z + max.z) * 0.5f),
                 new Vector3(wallThickness, wallHeight, height * cellSize), Quaternion.identity, parent);
             // Oeste
-            SpawnWall(new Vector3(min.x, 0f, (min.z + max.z) * 0.5f),
+            SpawnWall(new Vector3(min.x, yCenter, (min.z + max.z) * 0.5f),
                 new Vector3(wallThickness, wallHeight, height * cellSize), Quaternion.identity, parent);
         }
     }
 
     private void SpawnWall(Vector3 position, Vector3 scale, Quaternion rot, Transform parent)
     {
-        if (wallPrefab == null) return;
-        var go = Instantiate(wallPrefab, position, rot, parent);
+        if (wallPrefab == null && exitPrefab == null) 
+        { 
+            return; 
+        }        
+
+        GameObject prefabToUse = wallPrefab != null ? wallPrefab : exitPrefab;   
+        
+        var go = Instantiate(prefabToUse, position, rot, parent);
         go.transform.localScale = scale;
         go.name = "Wall";
+
+        spawnedWalls.Add(go.transform);
     }
 
     private void ClearMaze()
@@ -243,5 +269,39 @@ public class MazeGeneratorSecond : MonoBehaviour
             if (Application.isPlaying) Destroy(toDestroy[i].gameObject);
             else DestroyImmediate(toDestroy[i].gameObject);
         }
+    }
+
+    private void PlaceSpecialWall()
+    {
+        if(exitPrefab == null)
+        {
+            return;
+        }
+
+        if(spawnedWalls.Count == 0)
+        {
+            return;
+        }
+
+        int idx = rng.Next(spawnedWalls.Count);
+        Transform w = spawnedWalls[idx];
+
+        Vector3 pos = w.position;
+        Quaternion rot = w.rotation;
+        Vector3 scale = w.localScale;
+        Transform parent = w.parent;
+
+        if (Application.isPlaying)
+        {
+            Destroy(w.gameObject);
+        }
+        else
+        {
+            DestroyImmediate(w.gameObject);
+        }
+
+        var special = Instantiate(exitPrefab, pos, rot, parent);
+        special.transform.localScale = scale;
+        special.name = "Exit";
     }
 }

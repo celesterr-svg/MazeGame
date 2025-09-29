@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("References")]
     public Transform playerCamera;
+    public Transform flashlight;
     public Rigidbody player;
 
     private float xRotation = 0f;
@@ -43,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
 
     void pMovement() 
     { 
-        float speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+        float speed = Input.GetKey(KeyCode.LeftShift) ? walkSpeed : runSpeed;
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
 
@@ -66,6 +67,9 @@ public class PlayerMovement : MonoBehaviour
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        transform.Rotate(Vector3.up * currentMouseDelta.x);
+
+        flashlight.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * currentMouseDelta.x);
     }
 
