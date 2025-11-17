@@ -10,10 +10,6 @@ public class Tutorial : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.tag == "Player")
-        {
-            flashlight.enabled = !flashlight.enabled;
-            Destroy(gameObject);
-        }
+        
     }
 }

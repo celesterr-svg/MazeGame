@@ -31,6 +31,15 @@ public class MazeGeneratorSecond : MonoBehaviour
     [Range(0f, 1f)] public float teleporterSpawnChance;
     float itemExtraYOffset = 0.5f;
 
+    [Header("Trampas del laberinto")]
+    public GameObject Pinches;
+    public GameObject Lanzas;
+    public GameObject SalidaFalsa;
+    [Range(0f, 1f)] public float pinchesSpawnChance;    
+    [Range(0f, 1f)] public float lanzasSpawnChance;
+    public bool placeFakeWall;
+    public float trapExtraYOffset = 0;
+
     [Header("Algoritmo (Growing Tree)")]
     [Range(0f, 1f)]
     public float randomPickProbability = 0.25f;
@@ -94,6 +103,10 @@ public class MazeGeneratorSecond : MonoBehaviour
         spawnedWalls.Clear();
         BuildMazeGeometry();
 
+        if (placeFakeWall)
+        {
+            PlaceFakeWall();
+        }
         PlaceSpecialWall();
     }
 
@@ -218,6 +231,20 @@ public class MazeGeneratorSecond : MonoBehaviour
                     PlaceOnFloor(item.transform, baseY);
                 }
 
+                if (Pinches != null && rng.NextDouble() < pinchesSpawnChance)
+                {
+                    Vector3 pos = new Vector3(cellCenter.x, baseY, cellCenter.z);
+                    var item = Instantiate(Pinches, pos, Quaternion.identity, parent);
+                    PlaceOnFloor(item.transform, baseY);
+                }
+
+                if (Lanzas != null && rng.NextDouble() < pinchesSpawnChance)
+                {
+                    Vector3 pos = new Vector3(cellCenter.x, baseY, cellCenter.z);
+                    var item = Instantiate(Lanzas, pos, Quaternion.identity, parent);
+                    PlaceOnFloor(item.transform, trapExtraYOffset);
+                }
+
                 if (y < height - 1 && grid[x, y].walls[(int)Dir.N])
                 {
                     Vector3 pos = cellCenter + new Vector3(0f, 0f, +cellSize * 0.5f);
@@ -313,6 +340,34 @@ public class MazeGeneratorSecond : MonoBehaviour
         special.transform.localScale = scale;
         special.name = "Exit";
     }
+
+    private void PlaceFakeWall()
+    {
+        if (exitPrefab == null)
+        {
+            return;
+        }
+
+        if (spawnedWalls.Count == 0)
+        {
+            return;
+        }
+
+        int idx = rng.Next(spawnedWalls.Count);
+        Transform w = spawnedWalls[idx];
+
+        Vector3 pos = w.position;
+        Quaternion rot = w.rotation;
+        Vector3 scale = w.localScale;
+        Transform parent = w.parent;
+
+        Destroy(w.gameObject);
+
+        var special = Instantiate(SalidaFalsa, pos, rot, parent);
+        special.transform.localScale = scale;
+        special.name = "Fake Exit";
+    }
+
     private void PlaceOnFloor(Transform t, float floorY, float extraOffset = 0f)
     {
         if (TryGetWorldBounds(t, out var b))

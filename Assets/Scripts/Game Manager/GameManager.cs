@@ -30,9 +30,22 @@ public class GameManager : MonoBehaviour
             panelWon.SetActive(true);
             Time.timeScale = 0;
 
+            if(SceneManager.GetActiveScene().name.Equals("Nivel 1"))
+            {
+                print("Nivel 1");
+                LevelManager.levelmanager.level2 = true;
+            }
+
+            if (SceneManager.GetActiveScene().name.Equals("Nivel 2"))
+            {
+                print("Nivel 1");
+                LevelManager.levelmanager.level3 = true;
+            }
+
             if (Input.GetKeyDown(KeyCode.R))
             {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                Cursor.lockState = CursorLockMode.None;
+                SceneManager.LoadScene("Menu");
                 Time.timeScale = 1f;
                 gameWon = false;
             }
